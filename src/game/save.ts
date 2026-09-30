@@ -1,9 +1,16 @@
 import { SAVE_VERSION, createGame } from './engine';
+import { clamp, STAGES } from './balance';
 import { getSpecies } from './species';
-import type { GameState } from './types';
+import type { GamePhase, GameState } from './types';
 
 const STORAGE_KEY = 'jurassic-cycle.save.v1';
 export const SAVE_VERSION_EXPORT = SAVE_VERSION;
+
+const PHASES: GamePhase[] = ['playing', 'won', 'dead'];
+
+function isPhase(value: unknown): value is GamePhase {
+  return typeof value === 'string' && (PHASES as string[]).includes(value);
+}
 
 export interface SaveFile {
   app: 'jurassic-cycle';
@@ -18,8 +25,18 @@ function isValidState(value: unknown): value is GameState {
   if (typeof state.speciesId !== 'string') return false;
   if (typeof state.turn !== 'number') return false;
   if (typeof state.rngState !== 'number') return false;
-  if (typeof state.stageIndex !== 'number') return false;
-  if (!state.stats || typeof state.stats.health !== 'number') return false;
+  if (!Number.isInteger(state.stageIndex) || (state.stageIndex as number) < 0) return false;
+  if (state.phase !== undefined && typeof state.phase !== 'string') return false;
+  const stats = state.stats;
+  if (!stats || typeof stats.health !== 'number') return false;
+  if (
+    typeof stats.food !== 'number' ||
+    typeof stats.water !== 'number' ||
+    typeof stats.energy !== 'number' ||
+    typeof stats.growth !== 'number'
+  ) {
+    return false;
+  }
   if (!Array.isArray(state.log)) return false;
   try {
     getSpecies(state.speciesId);
@@ -73,11 +90,22 @@ export function parseSave(value: unknown): GameState | null {
   if (!isValidState(state)) return null;
   // Нормализуем недостающие поля для совместимости версий.
   const base = createGame(state.speciesId, state.rngState);
+  const maxStage = STAGES.length - 1;
+  const stageIndex = Math.min(Math.max(Math.trunc(state.stageIndex), 0), maxStage);
+  const stats = { ...base.stats, ...state.stats };
   return {
     ...base,
     ...state,
     version: SAVE_VERSION_EXPORT,
-    stats: { ...base.stats, ...state.stats },
+    phase: isPhase(state.phase) ? state.phase : base.phase,
+    stageIndex,
+    stats: {
+      health: Math.max(0, stats.health),
+      food: clamp(stats.food),
+      water: clamp(stats.water),
+      energy: clamp(stats.energy),
+      growth: clamp(stats.growth),
+    },
     log: state.log.slice(0, 80),
     threat: state.threat ?? null,
     deathCause: state.deathCause ?? null,

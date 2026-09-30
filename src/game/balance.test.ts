@@ -36,6 +36,17 @@ function simulate(speciesId: string, seed: number, maxTurns = 1000): GameState {
   return state;
 }
 
+/** Доля побед наивного автопилота на серии партий (детерминированно по seed). */
+function winRate(speciesId: string, games: number): number {
+  let wins = 0;
+  for (let seed = 1; seed <= games; seed += 1) {
+    if (simulate(speciesId, seed).phase === 'won') wins += 1;
+  }
+  return wins / games;
+}
+
+const GAMES_PER_SPECIES = 200;
+
 describe('баланс', () => {
   for (const species of SPECIES) {
     it(`«${species.name}» может дожить до взрослой стадии`, () => {
@@ -53,4 +64,20 @@ describe('баланс', () => {
     expect(result.phase).toBe('won');
     expect(result.turn).toBeLessThan(600);
   });
+
+  for (const species of SPECIES.filter((s) => s.diet === 'herbivore')) {
+    it(`«${species.name}» выигрывает в целевом диапазоне 85–95%`, () => {
+      const rate = winRate(species.id, GAMES_PER_SPECIES);
+      expect(rate, `фактический винрейт ${(rate * 100).toFixed(1)}%`).toBeGreaterThanOrEqual(0.85);
+      expect(rate, `фактический винрейт ${(rate * 100).toFixed(1)}%`).toBeLessThanOrEqual(0.95);
+    });
+  }
+
+  for (const species of SPECIES.filter((s) => s.diet === 'carnivore')) {
+    it(`«${species.name}» выигрывает в целевом диапазоне 45–65%`, () => {
+      const rate = winRate(species.id, GAMES_PER_SPECIES);
+      expect(rate, `фактический винрейт ${(rate * 100).toFixed(1)}%`).toBeGreaterThanOrEqual(0.45);
+      expect(rate, `фактический винрейт ${(rate * 100).toFixed(1)}%`).toBeLessThanOrEqual(0.65);
+    });
+  }
 });

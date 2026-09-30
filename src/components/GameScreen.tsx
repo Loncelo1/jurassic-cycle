@@ -1,8 +1,9 @@
 import { availableActions } from '../game/engine';
 import { getSpecies } from '../game/species';
-import { isNight, TURNS_PER_DAY } from '../game/balance';
+import { GROWTH_PER_STAGE, dayOf, isNight } from '../game/balance';
 import { useGame } from '../state/GameContext';
 import { ActionPanel } from './ActionPanel';
+import { DinoAvatar } from './DinoAvatar';
 import { LogPanel } from './LogPanel';
 import { ResultScreen } from './ResultScreen';
 import { SaveControls } from './SaveControls';
@@ -16,16 +17,17 @@ export function GameScreen() {
   const species = getSpecies(game.speciesId);
   const actions = availableActions(game);
   const night = isNight(game.turn);
-  const day = Math.floor(game.turn / TURNS_PER_DAY) + 1;
+  const day = dayOf(game.turn);
   const finished = game.phase !== 'playing';
+
+  const confirmMenu = () => {
+    if (window.confirm('Вернуться в меню? Текущий прогресс будет удалён.')) newGame();
+  };
 
   return (
     <div className="game">
       <header className="game-header">
         <div className="identity">
-          <span className="emoji" aria-hidden>
-            {species.emoji}
-          </span>
           <div>
             <h2>{species.name}</h2>
             <span className="muted" style={{ fontSize: '0.85rem' }}>
@@ -42,18 +44,25 @@ export function GameScreen() {
         </div>
         <div className="row">
           <SaveControls mode="game" state={game} onImported={importSave} />
-          <button type="button" className="btn btn-sm btn-ghost" onClick={newGame}>
+          <button type="button" className="btn btn-sm btn-ghost" onClick={confirmMenu}>
             Меню
           </button>
         </div>
       </header>
 
-      <StatsPanel game={game} />
-
       <div className="game-layout">
+        <StatsPanel game={game} />
+        <div className="game-center">
+          <DinoAvatar
+            species={species}
+            stageIndex={game.stageIndex}
+            growth={game.stats.growth}
+            growthMax={GROWTH_PER_STAGE}
+          />
+          <StageBar game={game} />
+          <LogPanel entries={game.log} turn={game.turn} />
+        </div>
         <ActionPanel actions={actions} disabled={finished} onAct={act} />
-        <LogPanel entries={game.log} turn={game.turn} />
-        <StageBar game={game} />
       </div>
 
       {finished && (
