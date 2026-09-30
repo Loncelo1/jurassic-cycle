@@ -1,6 +1,6 @@
 import { availableActions } from '../game/engine';
 import { getSpecies } from '../game/species';
-import { isNight, TURNS_PER_DAY } from '../game/balance';
+import { dayOf, isNight } from '../game/balance';
 import { useGame } from '../state/GameContext';
 import { ActionPanel } from './ActionPanel';
 import { LogPanel } from './LogPanel';
@@ -16,8 +16,12 @@ export function GameScreen() {
   const species = getSpecies(game.speciesId);
   const actions = availableActions(game);
   const night = isNight(game.turn);
-  const day = Math.floor(game.turn / TURNS_PER_DAY) + 1;
+  const day = dayOf(game.turn);
   const finished = game.phase !== 'playing';
+
+  const confirmMenu = () => {
+    if (window.confirm('Вернуться в меню? Текущий прогресс будет удалён.')) newGame();
+  };
 
   return (
     <div className="game">
@@ -42,7 +46,7 @@ export function GameScreen() {
         </div>
         <div className="row">
           <SaveControls mode="game" state={game} onImported={importSave} />
-          <button type="button" className="btn btn-sm btn-ghost" onClick={newGame}>
+          <button type="button" className="btn btn-sm btn-ghost" onClick={confirmMenu}>
             Меню
           </button>
         </div>

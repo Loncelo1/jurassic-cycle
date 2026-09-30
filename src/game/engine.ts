@@ -16,7 +16,6 @@ import {
   STARVE_HEALTH,
   WATER_DECAY,
   clamp,
-  dayOf,
   isNight,
 } from './balance';
 import {
@@ -318,9 +317,4 @@ export function step(prev: GameState, actionId: ActionId): GameState {
   }
 
   return state;
-}
-
-/** Текстовое состояние текущего времени суток и дня для интерфейса. */
-export function describeTurn(state: GameState): { night: boolean; day: number } {
-  return { night: isNight(state.turn), day: dayOf(state.turn) };
 }

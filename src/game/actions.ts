@@ -1,4 +1,4 @@
-import type { Diet, StageId } from './types';
+import type { Diet } from './types';
 
 export type ActionId =
   | 'rest'
@@ -9,12 +9,6 @@ export type ActionId =
   | 'explore'
   | 'fight'
   | 'flee';
-
-export interface ActionResult {
-  text: string;
-  effects: Partial<Record<'health' | 'food' | 'water' | 'energy' | 'growth', number>>;
-  kind: 'good' | 'bad' | 'neutral';
-}
 
 export interface ActionDef {
   id: ActionId;
@@ -119,9 +113,4 @@ export function canAct(
   if (action.minStage > stageIndex) return false;
   if (action.diets && !action.diets.includes(diet)) return false;
   return true;
-}
-
-export function isStageAllowed(stageIndex: StageId | number, action: ActionDef): boolean {
-  const index = typeof stageIndex === 'number' ? stageIndex : 0;
-  return action.minStage <= index;
 }

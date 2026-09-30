@@ -86,5 +86,3 @@ export const EXPLORE_EVENTS: ExploreOutcome[] = [
     text: 'Долгие поиски не принесли ничего, кроме усталости.',
   },
 ];
-
-export const WEATHER_NAMES = ['Ясно', 'Облачно', 'Туман', 'Морось'];

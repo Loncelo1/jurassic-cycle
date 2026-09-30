@@ -1,4 +1,4 @@
-import { STAGES } from '../game/balance';
+import { STAGES, dayOf } from '../game/balance';
 import { getSpecies } from '../game/species';
 import type { GameState } from '../game/types';
 
@@ -12,6 +12,10 @@ export function ResultScreen({ game, onRestart, onMenu }: ResultScreenProps) {
   const species = getSpecies(game.speciesId);
   const won = game.phase === 'won';
   const stage = STAGES[game.stageIndex];
+
+  const handleMenu = () => {
+    if (window.confirm('Вернуться в меню? Текущий прогресс будет удалён.')) onMenu();
+  };
 
   return (
     <div className="overlay" role="dialog" aria-modal="true">
@@ -37,7 +41,7 @@ export function ResultScreen({ game, onRestart, onMenu }: ResultScreenProps) {
           </div>
           <div className="cell">
             <span className="k">Дней в мире</span>
-            {Math.floor(game.turn / 8) + 1}
+            {dayOf(game.turn)}
           </div>
         </div>
 
@@ -45,7 +49,7 @@ export function ResultScreen({ game, onRestart, onMenu }: ResultScreenProps) {
           <button type="button" className="btn btn-primary" onClick={onRestart}>
             Начать заново
           </button>
-          <button type="button" className="btn btn-ghost" onClick={onMenu}>
+          <button type="button" className="btn btn-ghost" onClick={handleMenu}>
             В главное меню
           </button>
         </div>

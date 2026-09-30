@@ -1,5 +1,5 @@
 import type { GameState, Stats } from '../game/types';
-import { MAX_STAT, STAGES } from '../game/balance';
+import { GROWTH_PER_STAGE, MAX_STAT, STAGES } from '../game/balance';
 import { getSpecies } from '../game/species';
 
 interface StatRow {
@@ -54,7 +54,7 @@ export function StatsPanel({ game }: { game: GameState }) {
       label: `Рост (${stage.name})`,
       emoji: stage.emoji,
       value: game.stats.growth,
-      max: 100,
+      max: GROWTH_PER_STAGE,
       cls: 'bar-growth',
     },
   ];

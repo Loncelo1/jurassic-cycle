@@ -63,6 +63,13 @@ describe('шаг игры', () => {
 });
 
 describe('рост и стадии', () => {
+  it('индекс стадии всегда указывает на существующую стадию', () => {
+    const start = createGame('velociraptor', 1);
+    expect(STAGES[start.stageIndex]).toBeDefined();
+    expect(start.stageIndex).toBeGreaterThanOrEqual(0);
+    expect(start.stageIndex).toBeLessThan(STAGES.length);
+  });
+
   it('переводит динозавра в следующую стадию при заполнении роста', () => {
     const start = createGame('parasaurolophus', 11);
     const boosted = {
