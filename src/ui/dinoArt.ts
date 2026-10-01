@@ -8,6 +8,14 @@
 /** Суффиксы имён файлов по индексу стадии (STAGES). */
 const STAGE_SUFFIX = ['baby', 'young', 'teen', 'adult'] as const;
 
+/**
+ * Префиксы имён файлов для видов, чей id не совпадает с именем файла.
+ * Файлы тираннозавра названы `trex_*`, а не `tyrannosaurus_*`.
+ */
+const SPECIES_PREFIX: Record<string, string> = {
+  tyrannosaurus: 'trex',
+};
+
 const modules = import.meta.glob('../dino_svg/*.svg', {
   eager: true,
   query: '?url',
@@ -20,12 +28,13 @@ for (const [path, url] of Object.entries(modules)) {
   BY_NAME[file.replace(/\.svg$/, '')] = url;
 }
 
-const FALLBACK = 'tyrannosaurus_baby';
+const FALLBACK = 'trex_baby';
 
 /** URL SVG для вида и индекса стадии роста. */
 export function dinoSvgUrl(speciesId: string, stageIndex: number): string {
   const suffix = STAGE_SUFFIX[Math.min(Math.max(stageIndex, 0), STAGE_SUFFIX.length - 1)];
-  return BY_NAME[`${speciesId}_${suffix}`] ?? BY_NAME[FALLBACK] ?? '';
+  const prefix = SPECIES_PREFIX[speciesId] ?? speciesId;
+  return BY_NAME[`${prefix}_${suffix}`] ?? BY_NAME[FALLBACK] ?? '';
 }
 
 /**

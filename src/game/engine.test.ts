@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, availableActions, step, totalGrowth } from './engine';
+import { createGame, availableActions, actionOptions, step, totalGrowth } from './engine';
 import { STAGES } from './balance';
 import { SPECIES, getSpecies } from './species';
 import type { Stats } from './types';
@@ -116,6 +116,18 @@ describe('действия при нулевой энергии', () => {
     const exhausted = { ...start, stats: { ...start.stats, energy: 0, food: 100, water: 100, health: 80 } };
     const after = step(exhausted, 'rest');
     expect(after.stats.energy).toBeGreaterThan(0);
+  });
+
+  it('показывает те же кнопки, но помечает их неактивными при нуле энергии', () => {
+    const start = createGame('velociraptor', 34);
+    const exhausted = { ...start, stats: { ...start.stats, energy: 0, food: 100, water: 100, health: 80 } };
+    const options = actionOptions(exhausted);
+    const enabledIds = options.filter((o) => o.enabled).map((o) => o.action.id);
+    const allIds = options.map((o) => o.action.id);
+    // Состав кнопок не меняется от энергии — иначе интерфейс «скачет».
+    expect(allIds).toEqual(actionOptions(start).map((o) => o.action.id));
+    expect(enabledIds).toEqual(expect.arrayContaining(['rest', 'sleep']));
+    expect(enabledIds).not.toContain('hunt');
   });
 });
 

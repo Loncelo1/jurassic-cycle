@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { availableActions } from '../game/engine';
+import { actionOptions } from '../game/engine';
 import { getSpecies } from '../game/species';
 import { dayOf, isNight } from '../game/balance';
 import { useGame } from '../state/GameContext';
@@ -45,7 +45,7 @@ export function GameScreen() {
   if (!game) return null;
 
   const species = getSpecies(game.speciesId);
-  const actions = availableActions(game);
+  const options = actionOptions(game);
   const night = isNight(game.turn);
   const day = dayOf(game.turn);
   const finished = game.phase !== 'playing';
@@ -85,24 +85,22 @@ export function GameScreen() {
       </header>
 
       <div className="game-layout">
-        <div className="game-left">
+        <div className="game-side-left">
           <StatsPanel game={game} />
-          <div className="stage-row">
-            <StageIndicator game={game} />
-            <StageBar game={game} />
-          </div>
-          <DinoScene
-            species={species}
-            stageIndex={game.stageIndex}
-            health={game.stats.health}
-            threat={game.threat}
-            lastAction={lastAction}
-            lastLogKind={lastLogKind}
-            turn={game.turn}
-          />
+          <StageIndicator game={game} />
+          <StageBar game={game} />
         </div>
-        <div className="game-right">
-          <ActionPanel actions={actions} disabled={finished} onAct={handleAct} />
+        <DinoScene
+          species={species}
+          stageIndex={game.stageIndex}
+          health={game.stats.health}
+          threat={game.threat}
+          lastAction={lastAction}
+          lastLogKind={lastLogKind}
+          turn={game.turn}
+        />
+        <div className="game-side-right">
+          <ActionPanel options={options} disabled={finished} onAct={handleAct} />
           <LogPanel entries={game.log} turn={game.turn} />
         </div>
       </div>

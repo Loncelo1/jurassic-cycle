@@ -24,6 +24,15 @@ export const REST_HEAL_MAX = 2;
 export const SLEEP_HEAL_MIN = 3;
 export const SLEEP_HEAL_MAX = 5;
 
+/**
+ * Пища за победу в схватке: побеждённого противника можно съесть.
+ * Победа «вчистую» даёт больше мяса, чем победа с тяжёлыми ранами.
+ */
+export const FIGHT_MEAT_MIN = 8;
+export const FIGHT_MEAT_MAX = 16;
+export const FIGHT_MEAT_HARD_MIN = 5;
+export const FIGHT_MEAT_HARD_MAX = 10;
+
 /** Полный прогресс одной стадии (в очках роста). */
 export const GROWTH_PER_STAGE = 100;
 

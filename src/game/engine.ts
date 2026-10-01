@@ -9,6 +9,10 @@ import {
 import {
   DEHYDRATE_HEALTH,
   ENERGY_DECAY,
+  FIGHT_MEAT_HARD_MAX,
+  FIGHT_MEAT_HARD_MIN,
+  FIGHT_MEAT_MAX,
+  FIGHT_MEAT_MIN,
   FOOD_DECAY,
   GROWTH_PER_STAGE,
   MAX_STAT,
@@ -76,6 +80,29 @@ export function availableActions(state: GameState): ActionDef[] {
   return ACTIONS.filter((action) =>
     canAct(action, species.diet, state.stageIndex, state.threat !== null, state.stats.energy),
   );
+}
+
+/** Действие для интерфейса: показывать всегда, но не всегда оно выполнимо. */
+export interface ActionOption {
+  action: ActionDef;
+  /** Можно ли выполнить действие прямо сейчас (с учётом энергии). */
+  enabled: boolean;
+}
+
+/**
+ * Набор действий для панели интерфейса. Состав зависит только от рациона, стадии и
+ * угрозы, поэтому при нуле энергии кнопки не пропадают — они становятся неактивными,
+ * и интерфейс не «скачет».
+ */
+export function actionOptions(state: GameState): ActionOption[] {
+  const species = getSpecies(state.speciesId);
+  const hasThreat = state.threat !== null;
+  return ACTIONS.filter((action) =>
+    canAct(action, species.diet, state.stageIndex, hasThreat, MAX_STAT),
+  ).map((action) => ({
+    action,
+    enabled: canAct(action, species.diet, state.stageIndex, hasThreat, state.stats.energy),
+  }));
 }
 
 /** Применяет эффект действия к статам (частичные значения). */
@@ -248,28 +275,23 @@ function performFight(state: GameState, rng: Rng): { text: string; kind: LogKind
   const roll = rng.next();
   if (roll < power) {
     const wound = rng.int(7, 13);
-    applyEffects(state, { health: -wound, growth: 3 });
-    if (species.diet === 'carnivore') {
-      const meat = rng.int(10, 16);
-      applyEffects(state, { food: meat });
-      state.threat = null;
-      return {
-        text: `Вы отогнали ${predator}, отделавшись ушибами (−${wound} здоровья, +${meat} пищи с тушей).`,
-        kind: 'good',
-      };
-    }
+    // Победа — это ещё и добыча: побеждённого противника можно съесть.
+    const meat = rng.int(FIGHT_MEAT_MIN, FIGHT_MEAT_MAX);
+    applyEffects(state, { health: -wound, growth: 3, food: meat });
     state.threat = null;
     return {
-      text: `Вы отогнали ${predator}, отделавшись лёгкими ранами (−${wound} здоровья).`,
+      text: `Вы одолели ${predator} и съели добычу (−${wound} здоровья, +${meat} пищи).`,
       kind: 'good',
     };
   }
   if (roll < power + 0.27) {
     const wound = rng.int(15, 23);
+    // Соперник всё равно становится поживой, но достаётся дорого.
+    const meat = rng.int(FIGHT_MEAT_HARD_MIN, FIGHT_MEAT_HARD_MAX);
     state.threat = null;
-    applyEffects(state, { health: -wound, food: -4 });
+    applyEffects(state, { health: -wound, food: meat - 4 });
     return {
-      text: `${predator} отступает, но вы крепко потрёпаны (−${wound} здоровья).`,
+      text: `${predator} падает, но бой дался тяжело (−${wound} здоровья, +${meat} пищи).`,
       kind: 'neutral',
     };
   }
