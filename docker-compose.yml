@@ -1,0 +1,10 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jurassic-cycle:latest
+    container_name: jurassic-cycle
+    ports:
+      - '8080:80'
+    restart: unless-stopped

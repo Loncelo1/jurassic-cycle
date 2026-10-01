@@ -6,6 +6,8 @@ export interface Stage {
   id: StageId;
   name: string;
   emoji: string;
+  /** Краткое описание стадии для интерфейса. */
+  description: string;
 }
 
 export interface Species {

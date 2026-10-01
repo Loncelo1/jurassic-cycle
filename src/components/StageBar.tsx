@@ -1,9 +1,41 @@
-import { STAGES } from '../game/balance';
+import { GROWTH_PER_STAGE, STAGES } from '../game/balance';
 import type { GameState } from '../game/types';
 
+/** Компактный индикатор текущей стадии с прогрессом роста. */
+export function StageIndicator({ game }: { game: GameState }) {
+  const stage = STAGES[game.stageIndex];
+  const progress = Math.round((game.stats.growth / GROWTH_PER_STAGE) * 100);
+
+  return (
+    <div className="stage-indicator panel" aria-label={`Текущая стадия: ${stage.name}`}>
+      <span className="stage-indicator-emoji" aria-hidden>
+        {stage.emoji}
+      </span>
+      <div className="stage-indicator-body">
+        <span className="stage-indicator-label">Текущая стадия</span>
+        <strong className="stage-indicator-name">{stage.name}</strong>
+        <div
+          className="bar bar-growth"
+          role="progressbar"
+          aria-valuenow={progress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Прогресс роста"
+        >
+          <span style={{ width: `${progress}%` }} />
+        </div>
+        <span className="muted stage-indicator-growth">
+          Рост {Math.round(game.stats.growth)}/{GROWTH_PER_STAGE}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Трек стадий взросления с описанием каждой ступени. */
 export function StageBar({ game }: { game: GameState }) {
   return (
-    <section className="panel side" aria-label="Стадии взросления">
+    <section className="panel side stage-bar" aria-label="Стадии взросления">
       <h3 className="panel-title">Стадии взросления</h3>
       <div className="stage-track">
         {STAGES.map((stage, index) => {
@@ -14,15 +46,12 @@ export function StageBar({ game }: { game: GameState }) {
               <span className="stage-emoji" aria-hidden>
                 {stage.emoji}
               </span>
-              {stage.name}
+              <span className="stage-name">{stage.name}</span>
+              <span className="stage-desc">{stage.description}</span>
             </div>
           );
         })}
       </div>
-      <p className="hint-block">
-        Достигните стадии «Взрослый», чтобы выиграть. Рост даёт отдых, сон и успешные
-        взаимодействия. Смерть — при нуле здоровья, пищи или воды.
-      </p>
     </section>
   );
 }

@@ -1,17 +1,47 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { availableActions } from '../game/engine';
 import { getSpecies } from '../game/species';
-import { GROWTH_PER_STAGE, dayOf, isNight } from '../game/balance';
+import { dayOf, isNight } from '../game/balance';
 import { useGame } from '../state/GameContext';
+import type { ActionId } from '../game/actions';
+import type { LogKind } from '../game/types';
 import { ActionPanel } from './ActionPanel';
-import { DinoAvatar } from './DinoAvatar';
+import { DinoScene } from './DinoScene';
 import { LogPanel } from './LogPanel';
 import { ResultScreen } from './ResultScreen';
 import { SaveControls } from './SaveControls';
-import { StageBar } from './StageBar';
+import { StageBar, StageIndicator } from './StageBar';
 import { StatsPanel } from './StatsPanel';
 
 export function GameScreen() {
   const { game, act, startGame, newGame, importSave } = useGame();
+  const [lastAction, setLastAction] = useState<ActionId | null>(null);
+  const [lastLogKind, setLastLogKind] = useState<LogKind | null>(null);
+  const previousTurn = useRef<number | null>(null);
+  const pendingAction = useRef<ActionId | null>(null);
+
+  const handleAct = useCallback(
+    (actionId: ActionId) => {
+      pendingAction.current = actionId;
+      act(actionId);
+    },
+    [act],
+  );
+
+  useEffect(() => {
+    if (!game) return;
+    if (previousTurn.current === null) {
+      previousTurn.current = game.turn;
+      return;
+    }
+    if (game.turn !== previousTurn.current) {
+      previousTurn.current = game.turn;
+      setLastAction(pendingAction.current);
+      setLastLogKind(game.log[0]?.kind ?? null);
+      pendingAction.current = null;
+    }
+  }, [game]);
+
   if (!game) return null;
 
   const species = getSpecies(game.speciesId);
@@ -40,7 +70,11 @@ export function GameScreen() {
           <span className="chip">📆 День {day}</span>
           <span className="chip">{night ? '🌙 Ночь' : '☀️ День'}</span>
           <span className="chip">🔄 Ход {game.turn}</span>
-          {game.threat && <span className="chip" style={{ color: 'var(--danger)' }}>⚠️ Угроза: {game.threat}</span>}
+          {game.threat && (
+            <span className="chip" style={{ color: 'var(--danger)' }}>
+              ⚠️ Угроза: {game.threat}
+            </span>
+          )}
         </div>
         <div className="row">
           <SaveControls mode="game" state={game} onImported={importSave} />
@@ -51,26 +85,30 @@ export function GameScreen() {
       </header>
 
       <div className="game-layout">
-        <StatsPanel game={game} />
-        <div className="game-center">
-          <DinoAvatar
+        <div className="game-left">
+          <StatsPanel game={game} />
+          <div className="stage-row">
+            <StageIndicator game={game} />
+            <StageBar game={game} />
+          </div>
+          <DinoScene
             species={species}
             stageIndex={game.stageIndex}
-            growth={game.stats.growth}
-            growthMax={GROWTH_PER_STAGE}
+            health={game.stats.health}
+            threat={game.threat}
+            lastAction={lastAction}
+            lastLogKind={lastLogKind}
+            turn={game.turn}
           />
-          <StageBar game={game} />
+        </div>
+        <div className="game-right">
+          <ActionPanel actions={actions} disabled={finished} onAct={handleAct} />
           <LogPanel entries={game.log} turn={game.turn} />
         </div>
-        <ActionPanel actions={actions} disabled={finished} onAct={act} />
       </div>
 
       {finished && (
-        <ResultScreen
-          game={game}
-          onRestart={() => startGame(species.id)}
-          onMenu={newGame}
-        />
+        <ResultScreen game={game} onRestart={() => startGame(species.id)} onMenu={newGame} />
       )}
     </div>
   );

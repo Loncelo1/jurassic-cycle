@@ -30,7 +30,7 @@ export const SPECIES: Species[] = [
       'Быстрый и хитрый охотник. Легко добывает добычу и быстро растёт, но не терпит голода.',
     maxHealth: 90,
     growthRate: 1.2,
-    huntSkill: 0.35,
+    huntSkill: 0.27,
     forageSkill: 0,
     appetite: 1.1,
     thirst: 1.2,
