@@ -11,6 +11,8 @@ import type { GameState } from './types';
 function autopilot(state: GameState): ActionId {
   const { stats, stageIndex } = state;
   if (state.threat) return stageIndex >= 2 ? 'fight' : 'flee';
+  // При нуле энергии активные действия недоступны — сначала восстанавливаем силы.
+  if (stats.energy <= 0) return 'sleep';
   if (stats.water < 25) return 'drink';
   const species = getSpecies(state.speciesId);
   const hungry = stats.food < 30;

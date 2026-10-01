@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { CARNIVORES, HERBIVORES } from '../game/species';
+import { STAGES } from '../game/balance';
 import type { Diet, Species } from '../game/types';
 import { useGame } from '../state/GameContext';
+import { dinoSvgUrl } from '../ui/dinoArt';
 import { SaveControls } from './SaveControls';
 
 interface DietSectionProps {
@@ -11,6 +13,8 @@ interface DietSectionProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
+
+const ADULT_STAGE = STAGES.length - 1;
 
 function DietSection({ title, emoji, species, selectedId, onSelect }: DietSectionProps) {
   return (
@@ -27,9 +31,13 @@ function DietSection({ title, emoji, species, selectedId, onSelect }: DietSectio
             onClick={() => onSelect(item.id)}
             aria-pressed={selectedId === item.id}
           >
-            <span className="species-emoji" aria-hidden>
-              {item.emoji}
-            </span>
+            <img
+              className="species-art"
+              src={dinoSvgUrl(item.id, ADULT_STAGE)}
+              alt={`${item.name}, взрослая особь`}
+              loading="lazy"
+              draggable={false}
+            />
             <span className="species-name">{item.name}</span>
             <span className="species-latin">{item.scientificName}</span>
             <span className="muted" style={{ fontSize: '0.85rem' }}>

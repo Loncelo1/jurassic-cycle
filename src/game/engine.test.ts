@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, availableActions, step, totalGrowth } from './engine';
+import { createGame, availableActions, actionOptions, step, totalGrowth } from './engine';
 import { STAGES } from './balance';
 import { SPECIES, getSpecies } from './species';
 import type { Stats } from './types';
@@ -59,6 +59,107 @@ describe('шаг игры', () => {
     const start = createGame('brachiosaurus', 3);
     const after = step(start, 'rest');
     expect(after.stats.water).toBeLessThanOrEqual(start.stats.water);
+  });
+});
+
+describe('восстановление здоровья', () => {
+  it('отдых восстанавливает 1–2 здоровья', () => {
+    const start = createGame('triceratops', 21);
+    const hurt = { ...start, stats: { ...start.stats, health: 50, food: 100, water: 100, energy: 100 } };
+    const after = step(hurt, 'rest');
+    const healed = after.stats.health - 50;
+    expect(healed).toBeGreaterThanOrEqual(1);
+    expect(healed).toBeLessThanOrEqual(2);
+  });
+
+  it('сон восстанавливает 3–5 здоровья', () => {
+    const start = createGame('tyrannosaurus', 22);
+    const hurt = { ...start, stats: { ...start.stats, health: 20, food: 100, water: 100, energy: 100 } };
+    const after = step(hurt, 'sleep');
+    const healed = after.stats.health - 20;
+    expect(healed).toBeGreaterThanOrEqual(3);
+    expect(healed).toBeLessThanOrEqual(5);
+  });
+
+  it('не превышает максимальное здоровье вида', () => {
+    const species = getSpecies('velociraptor');
+    const start = createGame('velociraptor', 23);
+    const nearlyFull = {
+      ...start,
+      stats: { ...start.stats, health: species.maxHealth - 1, food: 100, water: 100, energy: 100 },
+    };
+    const after = step(nearlyFull, 'sleep');
+    expect(after.stats.health).toBeLessThanOrEqual(species.maxHealth);
+  });
+});
+
+describe('действия при нулевой энергии', () => {
+  it('оставляет доступными только отдых и сон', () => {
+    const start = createGame('velociraptor', 31);
+    const exhausted = { ...start, stats: { ...start.stats, energy: 0, food: 100, water: 100, health: 80 } };
+    const ids = availableActions(exhausted).map((a) => a.id);
+    expect(ids).toContain('rest');
+    expect(ids).toContain('sleep');
+    expect(ids).not.toContain('hunt');
+    expect(ids).not.toContain('explore');
+    expect(ids).not.toContain('drink');
+  });
+
+  it('не выполняет запрещённое действие при нуле энергии', () => {
+    const start = createGame('velociraptor', 32);
+    const exhausted = { ...start, stats: { ...start.stats, energy: 0, food: 100, water: 100, health: 80 } };
+    expect(step(exhausted, 'hunt')).toBe(exhausted);
+  });
+
+  it('позволяет восстановить силы отдыхом при нуле энергии', () => {
+    const start = createGame('velociraptor', 33);
+    const exhausted = { ...start, stats: { ...start.stats, energy: 0, food: 100, water: 100, health: 80 } };
+    const after = step(exhausted, 'rest');
+    expect(after.stats.energy).toBeGreaterThan(0);
+  });
+
+  it('показывает те же кнопки, но помечает их неактивными при нуле энергии', () => {
+    const start = createGame('velociraptor', 34);
+    const exhausted = { ...start, stats: { ...start.stats, energy: 0, food: 100, water: 100, health: 80 } };
+    const options = actionOptions(exhausted);
+    const enabledIds = options.filter((o) => o.enabled).map((o) => o.action.id);
+    const allIds = options.map((o) => o.action.id);
+    // Состав кнопок не меняется от энергии — иначе интерфейс «скачет».
+    expect(allIds).toEqual(actionOptions(start).map((o) => o.action.id));
+    expect(enabledIds).toEqual(expect.arrayContaining(['rest', 'sleep']));
+    expect(enabledIds).not.toContain('hunt');
+  });
+});
+
+describe('схватка', () => {
+  it('успешная схватка снимает угрозу и даёт рост', () => {
+    const start = createGame('velociraptor', 41);
+    const adult = {
+      ...start,
+      stageIndex: 3,
+      threat: 'аллозавр',
+      stats: { ...start.stats, health: 90, food: 100, water: 100, energy: 100 },
+    };
+    const after = step(adult, 'fight');
+    if (after.threat === null) {
+      expect(after.stats.growth).toBeGreaterThanOrEqual(adult.stats.growth);
+    } else {
+      expect(after.stats.health).toBeLessThan(adult.stats.health);
+    }
+  });
+
+  it('хищник получает пищу при успешной схватке', () => {
+    const start = createGame('tyrannosaurus', 42);
+    const adult = {
+      ...start,
+      stageIndex: 3,
+      threat: 'аллозавр',
+      stats: { ...start.stats, health: start.stats.health, food: 40, water: 100, energy: 100 },
+    };
+    const after = step(adult, 'fight');
+    if (after.threat === null) {
+      expect(after.stats.food).toBeGreaterThan(40);
+    }
   });
 });
 

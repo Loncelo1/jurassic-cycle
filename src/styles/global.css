@@ -90,9 +90,13 @@
   background: var(--accent-soft);
 }
 
-.species-emoji {
-  font-size: 2.4rem;
-  line-height: 1;
+.species-art {
+  width: 100%;
+  height: 130px;
+  object-fit: contain;
+  /* Модели — чёрные силуэты: перекрашиваем под тёмную тему. */
+  filter: invert(0.85) sepia(0.35) saturate(1.8) hue-rotate(62deg)
+    drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
 }
 
 .species-name {
@@ -209,12 +213,13 @@
 
 .game-layout {
   display: grid;
-  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr) minmax(220px, 300px);
+  grid-template-columns: minmax(220px, 1fr) minmax(400px, 2fr) minmax(240px, 1fr);
   gap: 18px;
   align-items: start;
 }
 
-.game-center {
+.game-side-left,
+.game-side-right {
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -234,57 +239,189 @@
   gap: 12px;
 }
 
-/* ---------- Аватар динозавра ---------- */
-.dino-avatar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 24px 18px;
-}
-
-.dino-avatar-ring {
-  width: calc(150px * var(--dino-scale, 1));
-  height: calc(150px * var(--dino-scale, 1));
-  border-radius: 50%;
-  padding: 8px;
-  background: conic-gradient(
-    var(--accent) var(--dino-progress, 0%),
-    rgba(255, 255, 255, 0.07) var(--dino-progress, 0%)
-  );
-  box-shadow: var(--shadow);
-  transition:
-    width 0.35s ease,
-    height 0.35s ease;
-}
-
-.dino-avatar-core {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 35%, var(--panel-soft), var(--panel) 70%);
+/* ---------- Сцена с динозавром ---------- */
+.dino-scene {
+  position: relative;
+  overflow: hidden;
+  min-height: 390px;
+  border-radius: var(--radius);
   border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(99, 183, 232, 0.1), transparent 55%),
+    radial-gradient(circle at 50% 120%, rgba(76, 175, 109, 0.16), transparent 60%),
+    linear-gradient(180deg, #16241c, #1b2a21);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.scene-sky {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 78% 18%, rgba(232, 215, 106, 0.16), transparent 32%);
+  pointer-events: none;
+}
+
+.scene-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 26%;
+  background: linear-gradient(180deg, rgba(63, 92, 69, 0.55), rgba(32, 49, 38, 0.9));
+  border-top: 1px solid var(--border-strong);
+}
+
+.dino-figure {
+  position: relative;
+  z-index: 2;
+  width: min(62%, 460px);
+  margin-bottom: 6%;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* В бою динозавр уходит влево, противник появляется справа. */
+.dino-figure.posed {
+  transform: translateX(-18%) scale(0.92);
+}
+
+.dino-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  /* Модели — чёрные силуэты: инвертируем на тёмной сцене и подсвечиваем зелёным. */
+  filter: invert(0.88) sepia(0.35) saturate(1.8) hue-rotate(62deg)
+    drop-shadow(0 10px 16px rgba(0, 0, 0, 0.5));
+  transform-origin: 50% 92%;
+  animation: scene-breathe 4.5s ease-in-out infinite;
+}
+
+.dino-img.is-hurt {
+  animation: scene-shake var(--hurt-duration, 0.6s) cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+.predator-figure {
+  position: absolute;
+  right: 6%;
+  bottom: 8%;
+  z-index: 3;
+  width: min(42%, 260px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
+  gap: 4px;
+  animation: predator-enter 0.6s ease-out both;
 }
 
-.dino-avatar-emoji {
-  font-size: calc(3.4rem * var(--dino-scale, 1));
+.predator-figure img {
+  width: 100%;
+  height: auto;
+  transform: scaleX(-1);
+  filter: invert(0.6) sepia(0.5) saturate(2.4) hue-rotate(-40deg) brightness(0.95)
+    drop-shadow(0 10px 16px rgba(0, 0, 0, 0.55));
+}
+
+.predator-label {
+  font-size: 0.72rem;
+  color: var(--danger);
+  background: rgba(6, 12, 9, 0.7);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* ---------- Эффекты действий ---------- */
+.scene-effect {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+  animation: effect-rise 1.6s ease-out both;
+}
+
+.scene-effect-emoji {
+  font-size: 2rem;
+  line-height: 1;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+.scene-effect-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: rgba(6, 12, 9, 0.6);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+.scene-effect.place-left {
+  left: 14%;
+  bottom: 30%;
+}
+.scene-effect.place-right {
+  right: 16%;
+  bottom: 32%;
+}
+.scene-effect.place-center {
+  left: 50%;
+  bottom: 58%;
+  transform: translateX(-50%);
+}
+.scene-effect.place-below {
+  left: 50%;
+  bottom: 4%;
+  transform: translateX(-50%);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Индикатор стадии ---------- */
+.stage-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.stage-indicator-emoji {
+  font-size: 2rem;
   line-height: 1;
 }
 
-.dino-avatar-stage {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  letter-spacing: 0.02em;
+.stage-indicator-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
-.dino-avatar-growth {
-  font-size: 0.8rem;
+.stage-indicator-label {
+  font-size: 0.72rem;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.stage-indicator-name {
+  font-size: 1.05rem;
+}
+
+.stage-indicator-growth {
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -405,24 +542,37 @@
 }
 
 /* ---------- Стадия ---------- */
-.stage-track {
-  display: flex;
+.stage-bar .stage-track {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 8px;
 }
 
 .stage-node {
-  flex: 1;
   text-align: center;
-  padding: 10px 6px;
+  padding: 10px 8px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--panel-soft);
   font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .stage-node .stage-emoji {
-  display: block;
   font-size: 1.4rem;
+  line-height: 1;
+}
+
+.stage-node .stage-name {
+  font-weight: 650;
+}
+
+.stage-node .stage-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.35;
 }
 
 .stage-node.done {
@@ -430,11 +580,116 @@
   color: var(--accent);
 }
 
+.stage-node.done .stage-desc {
+  color: var(--text-muted);
+}
+
 .stage-node.current {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--text);
-  font-weight: 650;
+}
+
+.stage-node.current .stage-name {
+  color: var(--accent);
+}
+
+/* ---------- Анимации сцены ---------- */
+@keyframes scene-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.012);
+  }
+}
+
+@keyframes scene-shake {
+  0% {
+    transform: translateX(0) rotate(0);
+  }
+  12% {
+    transform: translateX(-2%) rotate(calc(var(--hurt-amplitude, 8deg) * -1));
+  }
+  30% {
+    transform: translateX(2%) rotate(var(--hurt-amplitude, 8deg));
+  }
+  48% {
+    transform: translateX(-1.5%) rotate(calc(var(--hurt-amplitude, 8deg) * -0.7));
+  }
+  66% {
+    transform: translateX(1.5%) rotate(calc(var(--hurt-amplitude, 8deg) * 0.5));
+  }
+  84% {
+    transform: translateX(-0.6%) rotate(calc(var(--hurt-amplitude, 8deg) * -0.25));
+  }
+  100% {
+    transform: translateX(0) rotate(0);
+  }
+}
+
+@keyframes predator-enter {
+  from {
+    opacity: 0;
+    transform: translateX(24%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes effect-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.7);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px) scale(1.05);
+  }
+}
+
+/* Эффект по центру/снизу анимируется вместе с горизонтальным центрированием. */
+.scene-effect.place-center,
+.scene-effect.place-below {
+  animation-name: effect-rise-center;
+}
+
+@keyframes effect-rise-center {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.7);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -16px) scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dino-img,
+  .dino-img.is-hurt,
+  .predator-figure,
+  .predator-figure img,
+  .scene-effect {
+    animation: none;
+  }
 }
 
 /* ---------- Журнал ---------- */

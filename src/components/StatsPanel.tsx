@@ -1,5 +1,5 @@
 import type { GameState, Stats } from '../game/types';
-import { GROWTH_PER_STAGE, MAX_STAT, STAGES } from '../game/balance';
+import { MAX_STAT } from '../game/balance';
 import { getSpecies } from '../game/species';
 
 interface StatRow {
@@ -14,7 +14,6 @@ interface StatRow {
 
 export function StatsPanel({ game }: { game: GameState }) {
   const species = getSpecies(game.speciesId);
-  const stage = STAGES[game.stageIndex];
 
   const rows: StatRow[] = [
     {
@@ -49,15 +48,9 @@ export function StatsPanel({ game }: { game: GameState }) {
       max: MAX_STAT,
       cls: 'bar-energy',
     },
-    {
-      key: 'growth',
-      label: `Рост (${stage.name})`,
-      emoji: stage.emoji,
-      value: game.stats.growth,
-      max: GROWTH_PER_STAGE,
-      cls: 'bar-growth',
-    },
   ];
+
+  const healthPercent = Math.round((game.stats.health / species.maxHealth) * 100);
 
   return (
     <section className="stats-panel panel" aria-label="Состояние динозавра">
@@ -87,6 +80,7 @@ export function StatsPanel({ game }: { game: GameState }) {
           </div>
         );
       })}
+      <p className="hint-block muted">Здоровье: {healthPercent}% от максимума вида.</p>
     </section>
   );
 }

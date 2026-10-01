@@ -9,9 +9,17 @@ import {
 import {
   DEHYDRATE_HEALTH,
   ENERGY_DECAY,
+  FIGHT_MEAT_HARD_MAX,
+  FIGHT_MEAT_HARD_MIN,
+  FIGHT_MEAT_MAX,
+  FIGHT_MEAT_MIN,
   FOOD_DECAY,
   GROWTH_PER_STAGE,
   MAX_STAT,
+  REST_HEAL_MAX,
+  REST_HEAL_MIN,
+  SLEEP_HEAL_MAX,
+  SLEEP_HEAL_MIN,
   STAGES,
   STARVE_HEALTH,
   WATER_DECAY,
@@ -70,8 +78,31 @@ function pushLog(state: GameState, text: string, kind: LogKind = 'info'): void {
 export function availableActions(state: GameState): ActionDef[] {
   const species = getSpecies(state.speciesId);
   return ACTIONS.filter((action) =>
-    canAct(action, species.diet, state.stageIndex, state.threat !== null),
+    canAct(action, species.diet, state.stageIndex, state.threat !== null, state.stats.energy),
   );
+}
+
+/** Действие для интерфейса: показывать всегда, но не всегда оно выполнимо. */
+export interface ActionOption {
+  action: ActionDef;
+  /** Можно ли выполнить действие прямо сейчас (с учётом энергии). */
+  enabled: boolean;
+}
+
+/**
+ * Набор действий для панели интерфейса. Состав зависит только от рациона, стадии и
+ * угрозы, поэтому при нуле энергии кнопки не пропадают — они становятся неактивными,
+ * и интерфейс не «скачет».
+ */
+export function actionOptions(state: GameState): ActionOption[] {
+  const species = getSpecies(state.speciesId);
+  const hasThreat = state.threat !== null;
+  return ACTIONS.filter((action) =>
+    canAct(action, species.diet, state.stageIndex, hasThreat, MAX_STAT),
+  ).map((action) => ({
+    action,
+    enabled: canAct(action, species.diet, state.stageIndex, hasThreat, state.stats.energy),
+  }));
 }
 
 /** Применяет эффект действия к статам (частичные значения). */
@@ -105,6 +136,14 @@ function performForage(state: GameState, rng: Rng): { text: string; kind: LogKin
       kind: 'bad',
     };
   }
+  // Во время сбора травоядное уязвимо: из зарослей может выйти хищник.
+  if (rng.chance(0.012)) {
+    state.threat = rng.pick(PREDATOR_NAMES);
+    return {
+      text: `Пока вы щипали листву, из зарослей выходит ${state.threat}. Придётся защищаться!`,
+      kind: 'bad',
+    };
+  }
   const item: ForageItem = rng.pick(FORAGE_ITEMS);
   const luck = 0.6 + skill;
   const nutrition = Math.round(item.nutrition * luck);
@@ -119,7 +158,7 @@ function performForage(state: GameState, rng: Rng): { text: string; kind: LogKin
 function performHunt(state: GameState, rng: Rng): { text: string; kind: LogKind } {
   const species = getSpecies(state.speciesId);
   applyEffects(state, { energy: -25 });
-  if (rng.chance(0.12)) {
+  if (rng.chance(0.14)) {
     state.threat = rng.pick(PREDATOR_NAMES);
     return {
       text: `Пока вы выслеживали добычу, из зарослей выходит ${state.threat}. Придётся защищаться!`,
@@ -192,34 +231,73 @@ function performDrink(state: GameState, rng: Rng): { text: string; kind: LogKind
 function performRest(state: GameState, rng: Rng): { text: string; kind: LogKind } {
   const species = getSpecies(state.speciesId);
   const rest = rng.int(14, 20);
-  applyEffects(state, { energy: rest, growth: 3 * species.growthRate, food: -3, water: -3 });
-  return { text: `Вы передохнули в тени (+${rest} энергии).`, kind: 'neutral' };
+  const healed = rng.int(REST_HEAL_MIN, REST_HEAL_MAX);
+  applyEffects(state, {
+    energy: rest,
+    health: healed,
+    growth: 3 * species.growthRate,
+    food: -3,
+    water: -3,
+  });
+  return {
+    text: `Вы передохнули в тени (+${rest} энергии, +${healed} здоровья).`,
+    kind: 'neutral',
+  };
 }
 
 function performSleep(state: GameState, rng: Rng): { text: string; kind: LogKind } {
   const species = getSpecies(state.speciesId);
   const energy = Math.round(rng.int(28, 38) * nightModifier('sleep', state.turn));
+  const healed = rng.int(SLEEP_HEAL_MIN, SLEEP_HEAL_MAX);
   applyEffects(state, {
     energy,
+    health: healed,
     growth: 5 * species.growthRate,
     food: -4,
     water: -2,
   });
-  return { text: `Крепкий сон пошёл на пользу (+${energy} энергии).`, kind: 'good' };
+  return {
+    text: `Крепкий сон пошёл на пользу (+${energy} энергии, +${healed} здоровья).`,
+    kind: 'good',
+  };
 }
 
 function performFight(state: GameState, rng: Rng): { text: string; kind: LogKind } {
   const species = getSpecies(state.speciesId);
   const predator = state.threat ?? 'хищник';
   applyEffects(state, { energy: -18 });
-  const power = 0.3 + state.stageIndex * 0.16 + species.huntSkill * 0.5;
-  if (rng.chance(power)) {
-    applyEffects(state, { health: -14, growth: 3 });
+  // Сила бойца: базовая подготовка, бонус стадии и охотничьего навыка,
+  // плюс вклад текущего здоровья и остатка энергии — ослабленный зверь проигрывает чаще.
+  const healthRatio = state.stats.health / species.maxHealth;
+  const energyRatio = state.stats.energy / MAX_STAT;
+  const power =
+    0.18 + state.stageIndex * 0.13 + species.huntSkill * 0.3 + healthRatio * 0.09 + energyRatio * 0.07;
+  const roll = rng.next();
+  if (roll < power) {
+    const wound = rng.int(7, 13);
+    // Победа — это ещё и добыча: побеждённого противника можно съесть.
+    const meat = rng.int(FIGHT_MEAT_MIN, FIGHT_MEAT_MAX);
+    applyEffects(state, { health: -wound, growth: 3, food: meat });
     state.threat = null;
-    return { text: `Вы отогнали ${predator}, но получили ранения (−14 здоровья).`, kind: 'good' };
+    return {
+      text: `Вы одолели ${predator} и съели добычу (−${wound} здоровья, +${meat} пищи).`,
+      kind: 'good',
+    };
   }
-  applyEffects(state, { health: -28, food: -5 });
-  return { text: `${predator} оказался сильнее — вы едва вырвались (−28 здоровья).`, kind: 'bad' };
+  if (roll < power + 0.27) {
+    const wound = rng.int(15, 23);
+    // Соперник всё равно становится поживой, но достаётся дорого.
+    const meat = rng.int(FIGHT_MEAT_HARD_MIN, FIGHT_MEAT_HARD_MAX);
+    state.threat = null;
+    applyEffects(state, { health: -wound, food: meat - 4 });
+    return {
+      text: `${predator} падает, но бой дался тяжело (−${wound} здоровья, +${meat} пищи).`,
+      kind: 'neutral',
+    };
+  }
+  const wound = rng.int(27, 39);
+  applyEffects(state, { health: -wound, food: -6 });
+  return { text: `${predator} оказался сильнее — вы едва вырвались (−${wound} здоровья).`, kind: 'bad' };
 }
 
 function performFlee(state: GameState, rng: Rng): { text: string; kind: LogKind } {
@@ -285,7 +363,7 @@ export function step(prev: GameState, actionId: ActionId): GameState {
   const rng = new Rng(state.rngState);
 
   const def = ACTIONS.find((a) => a.id === actionId);
-  if (!def || !canAct(def, species.diet, prev.stageIndex, prev.threat !== null)) {
+  if (!def || !canAct(def, species.diet, prev.stageIndex, prev.threat !== null, prev.stats.energy)) {
     return prev;
   }
 

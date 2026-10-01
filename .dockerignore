@@ -1,0 +1,21 @@
+# Контекст сборки не должен тянуть в образ ничего лишнего.
+node_modules
+dist
+dist-ssr
+coverage
+
+# Служебные каталоги репозитория
+.git
+.gitignore
+.github
+.qwen
+openspec
+.vscode
+.idea
+
+# Логи и локальные файлы
+*.log
+npm-debug.log*
+*.local
+.DS_Store
+Thumbs.db

@@ -101,15 +101,20 @@ export const ACTIONS: ActionDef[] = [
   },
 ];
 
+/** Действия, доступные при полностью исчерпанной энергии. */
+const ZERO_ENERGY_ACTIONS: ActionId[] = ['rest', 'sleep'];
+
 /** Может ли действие быть выполнено при данных условиях. */
 export function canAct(
   action: ActionDef,
   diet: Diet,
   stageIndex: number,
   hasThreat: boolean,
+  energy = 100,
 ): boolean {
   if (action.requiresThreat) return hasThreat;
   if (hasThreat) return false;
+  if (energy <= 0 && !ZERO_ENERGY_ACTIONS.includes(action.id)) return false;
   if (action.minStage > stageIndex) return false;
   if (action.diets && !action.diets.includes(diet)) return false;
   return true;
